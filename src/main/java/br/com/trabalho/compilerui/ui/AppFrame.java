@@ -155,8 +155,7 @@ public class AppFrame extends JFrame {
 
     // (15) Equipe: apenas os nomes da equipe
     private void doEquipe() {
-        // Substitua pelos nomes reais dos integrantes:
-        messages.setText("Felipe Silva\nJoão Souza\nMaria Oliveira");
+        messages.setText("Felipe Boos\nMatheus Hillesheim\nSofia Sofiatti");
     }
 
     // getters (se precisar em outro ponto)
