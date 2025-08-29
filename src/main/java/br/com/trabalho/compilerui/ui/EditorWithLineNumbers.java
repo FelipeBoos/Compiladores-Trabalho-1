@@ -15,41 +15,61 @@ public class EditorWithLineNumbers {
     private final JScrollPane scrollPane;
 
     public EditorWithLineNumbers() {
-        textArea = new JTextArea();
+        // Não “colar” na largura do viewport (preserva barra horizontal)
+        textArea = new JTextArea() {
+            @Override public boolean getScrollableTracksViewportWidth() { return false; }
+        };
         textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+        textArea.setLineWrap(false);
+        textArea.setWrapStyleWord(false);
+        textArea.setTabSize(4);
+        textArea.setBackground(Color.WHITE); // fundo do editor
 
         scrollPane = new JScrollPane(
                 textArea,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
         );
+        // garante pintura consistente
+        scrollPane.setOpaque(true);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(Color.WHITE);
 
+        // Gutter (números de linha)
         LineNumberView lineNumbers = new LineNumberView(textArea);
         scrollPane.setRowHeaderView(lineNumbers);
+        if (scrollPane.getRowHeader() != null) {
+            scrollPane.getRowHeader().setOpaque(true);
+            scrollPane.getRowHeader().setBackground(LineNumberView.BG_COLOR);
+        }
+
+        // Repaint do gutter ao rolar
+        scrollPane.getViewport().addChangeListener(e -> lineNumbers.repaint());
     }
 
     public JComponent getContainer() { return scrollPane; }
     public JTextArea getTextArea() { return textArea; }
 
-    // --- Gutter para números de linha (corrigido) ---
+    // -------- Gutter para números de linha --------
     static class LineNumberView extends JComponent
             implements DocumentListener, CaretListener, PropertyChangeListener {
 
+        static final Color BG_COLOR = new Color(245, 245, 245);
+        static final Color SEP_COLOR = new Color(200, 200, 200);
+        static final int MARGIN = 8;
+
         private final JTextArea area;
-        private final int MARGIN = 8;
 
         LineNumberView(JTextArea area) {
             this.area = area;
             setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            setOpaque(true);
+            setBackground(BG_COLOR);
 
-            // repintar quando texto muda
             area.getDocument().addDocumentListener(this);
-            // repintar quando caret muda (às vezes muda viewport por setCaretPosition)
             area.addCaretListener(this);
-            // repintar quando rolar (mudança no viewport do scroll)
             area.addPropertyChangeListener("document", this);
 
-            // também repinta quando o pai (viewport) muda de posição
             addHierarchyListener(e -> {
                 Component p = getParent();
                 if (p instanceof JViewport vp) {
@@ -64,7 +84,6 @@ public class EditorWithLineNumbers {
             int lines = Math.max(1, area.getLineCount());
             int digits = String.valueOf(lines).length();
             int width = MARGIN * 2 + fm.charWidth('0') * digits;
-            // altura do gutter acompanha a altura do text area
             return new Dimension(Math.max(40, width), area.getHeight());
         }
 
@@ -72,29 +91,27 @@ public class EditorWithLineNumbers {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
 
-            Rectangle clip = g.getClipBounds();
             Graphics2D g2 = (Graphics2D) g.create();
+            Rectangle clip = g2.getClipBounds();
 
-            // fundo + divisória
-            g2.setColor(new Color(245, 245, 245));
+            // fundo e divisória
+            g2.setColor(getBackground());
             g2.fillRect(clip.x, clip.y, clip.width, clip.height);
-            g2.setColor(new Color(200, 200, 200));
+            g2.setColor(SEP_COLOR);
             g2.drawLine(getWidth() - 1, clip.y, getWidth() - 1, clip.y + clip.height);
 
-            // números
             g2.setFont(getFont());
             FontMetrics fm = g2.getFontMetrics();
-            int ascent = fm.getAscent();
             int descent = fm.getDescent();
 
-            // linhas visíveis
+            // faixa visível do editor
             Rectangle vr = area.getVisibleRect();
             int startOffset = area.viewToModel2D(new Point(0, vr.y));
-            int endOffset = area.viewToModel2D(new Point(0, vr.y + vr.height));
+            int endOffset   = area.viewToModel2D(new Point(0, vr.y + vr.height));
 
             try {
                 int startLine = area.getLineOfOffset(startOffset);
-                int endLine = area.getLineOfOffset(endOffset);
+                int endLine   = area.getLineOfOffset(endOffset);
 
                 for (int line = startLine; line <= endLine; line++) {
                     int lineStart = area.getLineStartOffset(Math.min(line, area.getLineCount() - 1));
@@ -102,7 +119,6 @@ public class EditorWithLineNumbers {
 
                     String num = String.valueOf(line + 1);
                     int x = getWidth() - MARGIN - fm.stringWidth(num);
-                    // baseline: topo da linha + altura - descent (ou topo + ascent)
                     int y = r.y + r.height - descent;
 
                     g2.setColor(Color.DARK_GRAY);
@@ -113,10 +129,7 @@ public class EditorWithLineNumbers {
             g2.dispose();
         }
 
-        private void refresh() {
-            revalidate();   // atualiza largura conforme número de dígitos
-            repaint();
-        }
+        private void refresh() { revalidate(); repaint(); }
 
         // DocumentListener
         @Override public void insertUpdate(DocumentEvent e) { refresh(); }
@@ -126,7 +139,7 @@ public class EditorWithLineNumbers {
         // CaretListener
         @Override public void caretUpdate(CaretEvent e) { repaint(); }
 
-        // PropertyChangeListener (document swap)
+        // PropertyChangeListener
         @Override public void propertyChange(PropertyChangeEvent evt) { refresh(); }
     }
 }
