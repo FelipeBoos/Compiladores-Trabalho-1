@@ -9,6 +9,10 @@ import java.awt.event.ActionEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import br.com.trabalho.compilerui.compiler.Lexico;
+import br.com.trabalho.compilerui.compiler.Token;
+import br.com.trabalho.compilerui.compiler.LexicalError;
+
 public class AppFrame extends JFrame {
 
     private final ToolbarPanel toolbar;

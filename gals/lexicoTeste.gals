@@ -1,0 +1,64 @@
+#Options
+GenerateScanner = true
+GenerateParser = false
+Language = Java
+ScannerName = Lexico
+ScannerCaseSensitive = true
+ScannerTable = Full
+Input = String
+
+#RegularDefinitions
+mai : [A-Z]
+min : [a-z]
+dig : [0-9]
+letra : {mai} | {min}
+
+#Tokens
+// identificador: começa por letra; depois letra|dígito|_
+identificador = {letra} ({letra} | {dig} | "_")*
+
+// constante inteira: 0 OU [1-9][0-9]{0,4}
+cint = "0" | ( [1-9] {dig}{0,4} )
+
+// constante float: (0|1–5 dígitos) '.' (1–5 dígitos) e fração NÃO termina em 0
+cfloat = ( "0" | ( [1-9] {dig}{0,4} ) ) "." ( {dig}{0,4} [1-9] )
+
+// string: " ... " sem \n, \r, " ou \
+cstring = "\"" { ~['"','\\','\n','\r'] } "\""
+
+// PALAVRAS-RESERVADAS
+pr_abstrato   = identificador : "abstrato"
+pr_add        = identificador : "add"
+pr_and        = identificador : "and"
+pr_begin      = identificador : "begin"
+pr_bool       = identificador : "bool"
+pr_count      = identificador : "count"
+pr_delete     = identificador : "delete"
+pr_do         = identificador : "do"
+pr_elementOf  = identificador : "elementOf"
+pr_else       = identificador : "else"
+pr_end        = identificador : "end"
+pr_false      = identificador : "false"
+pr_float      = identificador : "float"
+pr_if         = identificador : "if"
+pr_int        = identificador : "int"
+pr_list       = identificador : "list"
+pr_not        = identificador : "not"
+pr_or         = identificador : "or"
+pr_print      = identificador : "print"
+pr_publico    = identificador : "publico"
+pr_protegido  = identificador : "protegido"
+pr_propriedade= identificador : "propriedade"
+pr_read       = identificador : "read"
+pr_size       = identificador : "size"
+pr_string     = identificador : "string"
+pr_true       = identificador : "true"
+pr_until      = identificador : "until"
+
+// SÍMBOLOS ESPECIAIS (compostos primeiro)
+"==" "~=" "<-" "+" "-" "*" "/" "<" ">" "=" "(" ")" ";" ","
+
+// IGNORE: espaços/tabs/quebras + comentários
+:[ \t\r\n]+
+:"--" { ~['\n','\r'] }
+:"{" { ~['}'] } "}"
