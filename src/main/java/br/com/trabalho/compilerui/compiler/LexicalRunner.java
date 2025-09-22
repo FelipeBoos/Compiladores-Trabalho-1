@@ -5,72 +5,71 @@ import java.util.List;
 
 public final class LexicalRunner {
 
+    private LexicalRunner() {}
+
     public static List<String> run(String source) {
         List<String> out = new ArrayList<>();
         Lexico lex = new Lexico();
-        lex.setInput(source); // API padrão do GALS gerado
+        lex.setInput(source); // API padrão do GALS
 
         try {
             while (true) {
-                Token t = lex.nextToken();               // se seu gerado usa getNextToken(), troque aqui
-                if (t == null || t.getId() == Constants.EOF) break;
+                Token t = lex.nextToken();
+                if (t == null) break; // FIM DE ARQUIVO: GALS retorna null
 
                 String classe = classify(t);
-                if (classe == null) continue;            // ignorados já não vêm, mas por garantia
+                if (classe == null) continue;
+
                 int linha = toLineNumber(source, t.getPosition());
+                // formato: "<linha> <classe> <lexema>"
                 out.add(String.format("%d %s %s", linha, classe, t.getLexeme()));
             }
             out.add("programa compilado com sucesso");
         } catch (LexicalError e) {
             int linha = toLineNumber(source, e.getPosition());
-            out.add(String.format("linha %d: %s", linha, normalizeMsg(e, source)));
+            out.add(String.format("linha %d: %s", linha, normalizeMsg(e.getMessage())));
         }
+
         return out;
     }
 
+    /** Classificação básica usando IDs gerados pelo GALS */
     private static String classify(Token t) {
         int id = t.getId();
-        if (id == Constants.identifier) return "identificador";
-        if (id == Constants.cint)       return "constante_int";
-        if (id == Constants.cfloat)     return "constante_float";
-        if (id == Constants.cstring)    return "constante_string";
 
-        // keywords: os IDs começam com pr_ no Constants
-        String name = tokenName(id);
-        if (name.startsWith("pr_")) return "palavra reservada";
+        if (id == Constants.t_identificador) return "identificador";
+        if (id == Constants.t_cint)         return "constante_int";
+        if (id == Constants.t_cfloat)       return "constante_float";
+        if (id == Constants.t_cstring)      return "constante_string";
 
-        // símbolos especiais (conjunto da linguagem)
-        String lx = t.getLexeme();
-        if (lx.equals("==")||lx.equals("~=")||lx.equals("<-")||
-                lx.equals("+")||lx.equals("-")||lx.equals("*")||lx.equals("/")||
-                lx.equals("<")||lx.equals(">")||lx.equals("=")||
-                lx.equals("(")||lx.equals(")")||lx.equals(";")||lx.equals(",")) {
-            return "símbolo especial";
+        // Palavras reservadas: seus IDs estão no intervalo 6..32 no seu Constants
+        if (id >= Constants.t_pr_abstrato && id <= Constants.t_pr_until) {
+            return "palavra_reservada";
         }
-        return null; // nada a imprimir
+
+        // Símbolos especiais: 33..49 no seu Constants
+        if (id >= Constants.t_TOKEN_33 && id <= Constants.t_TOKEN_49) {
+            return "simbolo";
+        }
+
+        // Qualquer outro ID (se houver)
+        return "token";
     }
 
-    private static String tokenName(int id) {
-        try {
-            for (var f : Constants.class.getFields())
-                if (f.getType() == int.class && f.getInt(null) == id) return f.getName();
-        } catch (Exception ignore) {}
-        return "";
-    }
-
+    /** Converte posição absoluta (offset) para número de linha (1-based). */
     private static int toLineNumber(String src, int pos) {
-        if (pos < 0) return 1;
-        int line = 1;
-        for (int i = 0; i < Math.min(pos, src.length()); i++)
-            if (src.charAt(i) == '\n') line++;
-        return line;
+        if (pos <= 0) return 1;
+        int lines = 1;
+        int limit = Math.min(pos, src.length());
+        for (int i = 0; i < limit; i++) {
+            if (src.charAt(i) == '\n') lines++;
+        }
+        return lines;
     }
 
-    private static String normalizeMsg(LexicalError e, String src) {
-        String msg = (e.getMessage() == null ? "" : e.getMessage()).toLowerCase();
-        if (msg.contains("string"))  return "constante_string inválida";
-        if (msg.contains("float"))   return "constante_float inválida";
-        if (msg.contains("integer") || msg.contains("int")) return "constante_int inválida";
-        if (msg.contains("comment") || msg.contains("coment") || msg.contains("unclosed"))
-            return "comentário inválido ou não finalizado";
-        int p = e.g
+    /** Mensagem de erro mais amigável. */
+    private static String normalizeMsg(String msg) {
+        if (msg == null || msg.isEmpty()) return "erro léxico";
+        return msg;
+    }
+}

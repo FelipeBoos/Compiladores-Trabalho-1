@@ -4,7 +4,7 @@ GenerateParser = false
 Language = Java
 ScannerName = Lexico
 ScannerCaseSensitive = true
-ScannerTable = Full
+ScannerTable = Compressed
 Input = String
 #RegularDefinitions
 mai:[A-Z]
@@ -13,8 +13,6 @@ dig:[0-9]
 posit:[1-9]
 
 letra: {mai} | {min}
-
-
 
 //bloco: "{" [^\{\}]* "}"
 //comentario: "--"[^\n]*

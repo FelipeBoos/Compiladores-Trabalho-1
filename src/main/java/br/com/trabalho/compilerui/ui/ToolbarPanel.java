@@ -1,18 +1,21 @@
 package br.com.trabalho.compilerui.ui;
 
+import br.com.trabalho.compilerui.compiler.LexicalRunner;
+
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
+import java.util.List;
 
 public class ToolbarPanel extends JPanel {
 
-    private static final int BTN_WIDTH = 170;
+    private static final int BTN_WIDTH  = 170;
     private static final int BTN_HEIGHT = 40;
-    private static final int ICON_SIZE = 24;
+    private static final int ICON_SIZE  = 24;
 
     private final JToolBar toolBar;
 
-    // Botões expostos para ligar ações depois
+    // Botões expostos (se você quiser ligar mais ações depois)
     private final JButton btnNovo;
     private final JButton btnAbrir;
     private final JButton btnSalvar;
@@ -22,25 +25,28 @@ public class ToolbarPanel extends JPanel {
     private final JButton btnCompilar;
     private final JButton btnEquipe;
 
-    public ToolbarPanel() {
+    private final AppFrame app; // referência para acessar editor e painel de mensagens
+
+    public ToolbarPanel(AppFrame app) {
+        this.app = app;
+
         setLayout(new BorderLayout());
         setPreferredSize(new Dimension(0, 70)); // altura ~70px
 
         toolBar = new JToolBar();
         toolBar.setFloatable(false);
 
-        // Arquivos
-        btnNovo    = createButton("novo [ctrl-n]",    "novo.png");
-        btnAbrir   = createButton("abrir [ctrl-o]",   "abrir.png");
-        btnSalvar  = createButton("salvar [ctrl-s]",  "salvar.png");
+        // ==== Arquivo ====
+        btnNovo   = createButton("novo [ctrl-n]",   "novo.png");
+        btnAbrir  = createButton("abrir [ctrl-o]",  "abrir.png");
+        btnSalvar = createButton("salvar [ctrl-s]", "salvar.png");
 
         toolBar.add(btnNovo);
         toolBar.add(btnAbrir);
         toolBar.add(btnSalvar);
-
         toolBar.addSeparator();
 
-        // Edição
+        // ==== Edição ====
         btnCopiar   = createButton("copiar [ctrl-c]",   "copiar.png");
         btnColar    = createButton("colar [ctrl-v]",    "colar.png");
         btnRecortar = createButton("recortar [ctrl-x]", "cortar.png");
@@ -48,20 +54,26 @@ public class ToolbarPanel extends JPanel {
         toolBar.add(btnCopiar);
         toolBar.add(btnColar);
         toolBar.add(btnRecortar);
-
         toolBar.addSeparator();
 
-        // Compilar
+        // ==== Compilar ====
         btnCompilar = createButton("compilar [F7]", "compilar.png");
+        btnCompilar.addActionListener(e -> onCompile());
         toolBar.add(btnCompilar);
-
         toolBar.addSeparator();
 
-        // Equipe
+        // ==== Equipe ====
         btnEquipe = createButton("equipe [F1]", "equipe.png");
         toolBar.add(btnEquipe);
 
         add(toolBar, BorderLayout.CENTER);
+    }
+
+    /** Executa o runner léxico e envia as mensagens para o painel de saída. */
+    private void onCompile() {
+        String codigo = app.getEditorText();                 // você expõe esse getter no AppFrame
+        List<String> linhas = LexicalRunner.run(codigo);     // roda o léxico (Parte 2)
+        app.showMessages(linhas);                            // e mostra no MessagesPanel
     }
 
     private JButton createButton(String text, String iconFile) {
@@ -71,7 +83,7 @@ public class ToolbarPanel extends JPanel {
         b.setHorizontalTextPosition(SwingConstants.RIGHT);
         b.setIcon(loadIcon("/Icons/" + iconFile, ICON_SIZE, ICON_SIZE));
         b.setIconTextGap(8);
-        // padronizar tamanho
+
         Dimension d = new Dimension(BTN_WIDTH, BTN_HEIGHT);
         b.setPreferredSize(d);
         b.setMinimumSize(d);
@@ -90,13 +102,13 @@ public class ToolbarPanel extends JPanel {
         return new ImageIcon(img);
     }
 
-    // Getters para conectar Actions/Listeners no próximo passo
-    public JButton getBtnNovo() { return btnNovo; }
-    public JButton getBtnAbrir() { return btnAbrir; }
-    public JButton getBtnSalvar() { return btnSalvar; }
-    public JButton getBtnCopiar() { return btnCopiar; }
-    public JButton getBtnColar() { return btnColar; }
-    public JButton getBtnRecortar() { return btnRecortar; }
-    public JButton getBtnCompilar() { return btnCompilar; }
-    public JButton getBtnEquipe() { return btnEquipe; }
+    // Getters (se ainda quiser conectar outras ações fora da classe)
+    public JButton getBtnNovo()      { return btnNovo; }
+    public JButton getBtnAbrir()     { return btnAbrir; }
+    public JButton getBtnSalvar()    { return btnSalvar; }
+    public JButton getBtnCopiar()    { return btnCopiar; }
+    public JButton getBtnColar()     { return btnColar; }
+    public JButton getBtnRecortar()  { return btnRecortar; }
+    public JButton getBtnCompilar()  { return btnCompilar; }
+    public JButton getBtnEquipe()    { return btnEquipe; }
 }

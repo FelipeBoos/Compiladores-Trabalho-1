@@ -1,6 +1,7 @@
 package br.com.trabalho.compilerui.ui;
 
 import br.com.trabalho.compilerui.io.TextFileIO;
+import br.com.trabalho.compilerui.compiler.LexicalRunner;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -8,10 +9,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import br.com.trabalho.compilerui.compiler.Lexico;
-import br.com.trabalho.compilerui.compiler.Token;
-import br.com.trabalho.compilerui.compiler.LexicalError;
+import java.util.List;
 
 public class AppFrame extends JFrame {
 
@@ -32,14 +30,18 @@ public class AppFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Top: Toolbar
-        toolbar = new ToolbarPanel();
+        toolbar = new ToolbarPanel(this); // << passa a referência do AppFrame
         add(toolbar, BorderLayout.NORTH);
 
         // Center: Split editor/messages
         editor = new EditorWithLineNumbers();
         messages = new MessagesPanel();
 
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, editor.getContainer(), messages.getContainer());
+        JSplitPane split = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                editor.getContainer(),
+                messages.getContainer()
+        );
         split.setResizeWeight(0.8);
         split.setContinuousLayout(true);
         add(split, BorderLayout.CENTER);
@@ -59,7 +61,7 @@ public class AppFrame extends JFrame {
         toolbar.getBtnCopiar().addActionListener(e -> editor.getTextArea().copy());
         toolbar.getBtnColar().addActionListener(e -> editor.getTextArea().paste());
         toolbar.getBtnRecortar().addActionListener(e -> editor.getTextArea().cut());
-        toolbar.getBtnCompilar().addActionListener(e -> doCompilar());
+        // o botão Compilar já é conectado dentro do ToolbarPanel via onCompile()
         toolbar.getBtnEquipe().addActionListener(e -> doEquipe());
 
         // Atalhos
@@ -69,7 +71,7 @@ public class AppFrame extends JFrame {
         bindKeyStroke("control C", "copiar", () -> editor.getTextArea().copy());
         bindKeyStroke("control V", "colar", () -> editor.getTextArea().paste());
         bindKeyStroke("control X", "recortar", () -> editor.getTextArea().cut());
-        bindKeyStroke("F7", "compilar", this::doCompilar);
+        bindKeyStroke("F7", "compilar", this::doCompilar); // atalho chama o mesmo fluxo
         bindKeyStroke("F1", "equipe", this::doEquipe);
     }
 
@@ -108,11 +110,12 @@ public class AppFrame extends JFrame {
                 statusBar.updatePath(file.toString());
                 currentFile = file;
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Erro ao abrir arquivo:\n" + ex.getMessage(),
+                JOptionPane.showMessageDialog(this,
+                        "Erro ao abrir arquivo:\n" + ex.getMessage(),
                         "Erro", JOptionPane.ERROR_MESSAGE);
             }
         }
-        // CANCEL_OPTION -> não faz nada (mantém editor/mensagens/status)
+        // CANCEL_OPTION -> não faz nada
     }
 
     // (12) Salvar: novo → escolher .txt e atualizar status; existente → sobrescrever e manter status
@@ -126,40 +129,54 @@ public class AppFrame extends JFrame {
                 if (result != JFileChooser.APPROVE_OPTION) return;
 
                 Path file = chooser.getSelectedFile().toPath();
-                // garante extensão .txt
                 if (!file.toString().toLowerCase().endsWith(".txt")) {
                     file = file.resolveSibling(file.getFileName().toString() + ".txt");
                 }
-                // se existir, confirmar sobrescrita
                 if (Files.exists(file)) {
                     int opt = JOptionPane.showConfirmDialog(this,
-                            "Arquivo existe. Deseja sobrescrever?", "Confirmar",
-                            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                            "Arquivo existe. Deseja sobrescrever?",
+                            "Confirmar",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
                     if (opt != JOptionPane.YES_OPTION) return;
                 }
                 TextFileIO.write(file, editor.getTextArea().getText());
                 messages.clear();
-                statusBar.updatePath(file.toString()); // atualiza status
+                statusBar.updatePath(file.toString());
                 currentFile = file;
             } else {
                 TextFileIO.write(currentFile, editor.getTextArea().getText());
                 messages.clear();
-                // manter status (já mostra o caminho atual)
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Erro ao salvar arquivo:\n" + ex.getMessage(),
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao salvar arquivo:\n" + ex.getMessage(),
                     "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // (14) Compilar: apenas a mensagem abaixo visível
+    // (14) Compilar: agora roda o analisador léxico (Parte 2)
     private void doCompilar() {
-        messages.setText("compilação de programas ainda não foi implementada");
+        String codigo = getEditorText();
+        List<String> linhas = LexicalRunner.run(codigo);
+        showMessages(linhas);
     }
 
     // (15) Equipe: apenas os nomes da equipe
     private void doEquipe() {
         messages.setText("Felipe Boos\nMatheus Hillesheim\nSofia Sofiatti");
+    }
+
+    // === Métodos usados pelo ToolbarPanel e por atalhos ===
+    public String getEditorText() {
+        return editor.getTextArea().getText();
+    }
+
+    public void showMessages(List<String> msgs) {
+        messages.clear();
+        StringBuilder sb = new StringBuilder();
+        for (String l : msgs) sb.append(l).append('\n');
+        messages.setText(sb.toString());
     }
 
     // getters (se precisar em outro ponto)

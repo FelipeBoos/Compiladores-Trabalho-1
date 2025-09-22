@@ -1,3 +1,5 @@
+package br.com.trabalho.compilerui.compiler;
+
 public class AnalysisError extends Exception
 {
     private int position;

@@ -1,3 +1,5 @@
+package br.com.trabalho.compilerui.compiler;
+
 public class SemanticError extends AnalysisError
 {
     public SemanticError(String msg, int position)

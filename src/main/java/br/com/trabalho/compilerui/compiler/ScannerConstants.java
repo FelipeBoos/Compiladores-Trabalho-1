@@ -1,3 +1,5 @@
+package br.com.trabalho.compilerui.compiler;
+
 public interface ScannerConstants
 {
     int[][] SCANNER_TABLE = 
