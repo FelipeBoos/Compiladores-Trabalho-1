@@ -1,28 +1,26 @@
 package br.com.trabalho.compilerui.compiler;
 
-public class AnalysisError extends Exception
-{
-    private int position;
+public class AnalysisError extends Exception {
+    private static final long serialVersionUID = 1L;
 
-    public AnalysisError(String msg, int position)
-    {
+    private final int position;
+
+    public AnalysisError(String msg, int position) {
         super(msg);
         this.position = position;
     }
 
-    public AnalysisError(String msg)
-    {
+    public AnalysisError(String msg) {
         super(msg);
         this.position = -1;
     }
 
-    public int getPosition()
-    {
+    public int getPosition() {
         return position;
     }
 
-    public String toString()
-    {
-        return super.toString() + ", @ "+position;
+    @Override
+    public String toString() {
+        return super.toString() + ", @ " + position;
     }
 }

@@ -1,7 +1,7 @@
 package br.com.trabalho.compilerui.ui;
 
-import br.com.trabalho.compilerui.io.TextFileIO;
 import br.com.trabalho.compilerui.compiler.LexicalRunner;
+import br.com.trabalho.compilerui.io.TextFileIO;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -30,7 +30,7 @@ public class AppFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Top: Toolbar
-        toolbar = new ToolbarPanel(this); // << passa a referência do AppFrame
+        toolbar = new ToolbarPanel(this); // passa a referência do AppFrame
         add(toolbar, BorderLayout.NORTH);
 
         // Center: Split editor/messages
@@ -61,7 +61,7 @@ public class AppFrame extends JFrame {
         toolbar.getBtnCopiar().addActionListener(e -> editor.getTextArea().copy());
         toolbar.getBtnColar().addActionListener(e -> editor.getTextArea().paste());
         toolbar.getBtnRecortar().addActionListener(e -> editor.getTextArea().cut());
-        // o botão Compilar já é conectado dentro do ToolbarPanel via onCompile()
+        toolbar.getBtnCompilar().addActionListener(e -> doCompilar());
         toolbar.getBtnEquipe().addActionListener(e -> doEquipe());
 
         // Atalhos
@@ -71,7 +71,7 @@ public class AppFrame extends JFrame {
         bindKeyStroke("control C", "copiar", () -> editor.getTextArea().copy());
         bindKeyStroke("control V", "colar", () -> editor.getTextArea().paste());
         bindKeyStroke("control X", "recortar", () -> editor.getTextArea().cut());
-        bindKeyStroke("F7", "compilar", this::doCompilar); // atalho chama o mesmo fluxo
+        bindKeyStroke("F7", "compilar", this::doCompilar); // atalho compilar
         bindKeyStroke("F1", "equipe", this::doEquipe);
     }
 
@@ -83,9 +83,9 @@ public class AppFrame extends JFrame {
         });
     }
 
-    // --- Ações exigidas pelo enunciado ---
+    // --- Ações ---
 
-    // (10) Novo: limpa editor, mensagens e status; zera arquivo atual
+    // Novo: limpa editor, mensagens e status; zera arquivo atual
     private void doNovo() {
         editor.getTextArea().setText("");
         messages.clear();
@@ -93,7 +93,7 @@ public class AppFrame extends JFrame {
         currentFile = null;
     }
 
-    // (11) Abrir: só .txt; se cancelar, nada muda
+    // Abrir: apenas .txt; se cancelar, não altera nada
     private void doAbrir() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Abrir arquivo de texto");
@@ -115,10 +115,9 @@ public class AppFrame extends JFrame {
                         "Erro", JOptionPane.ERROR_MESSAGE);
             }
         }
-        // CANCEL_OPTION -> não faz nada
     }
 
-    // (12) Salvar: novo → escolher .txt e atualizar status; existente → sobrescrever e manter status
+    // Salvar: se novo, pede caminho .txt; se existente, sobrescreve
     private void doSalvar() {
         try {
             if (currentFile == null) {
@@ -155,19 +154,51 @@ public class AppFrame extends JFrame {
         }
     }
 
-    // (14) Compilar: agora roda o analisador léxico (Parte 2)
+    // Compilar: executa o analisador léxico e exibe a saída
     private void doCompilar() {
-        String codigo = getEditorText();
-        List<String> linhas = LexicalRunner.run(codigo);
-        showMessages(linhas);
+        messages.clear();
+
+        String source = editor.getTextArea().getText();
+        if (source.isBlank()) {
+            messages.setText("Nenhum código para compilar.");
+            return;
+        }
+
+        try {
+            List<String> result = LexicalRunner.run(source);
+
+            // Fonte monoespaçada para alinhar colunas
+            messages.getTextArea().setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+            // Mostra resultado
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("%-10s %-20s %-20s\n", "linha", "classe", "lexema"));
+            sb.append("------------------------------------------------------------\n");
+
+            for (String line : result) {
+                // supondo que o formato de cada linha seja "linha classe lexema"
+                String[] parts = line.split("\\s+", 3); // divide em até 3 partes
+                if (parts.length == 3) {
+                    sb.append(String.format("%-10s %-20s %-20s\n", parts[0], parts[1], parts[2]));
+                } else {
+                    sb.append(line).append('\n'); // fallback
+                }
+            }
+
+            messages.setText(sb.toString());
+            messages.getTextArea().setCaretPosition(0);
+        } catch (Exception ex) {
+            messages.setText("Erro durante a compilação: " + ex.getMessage());
+            ex.printStackTrace();
+        }
     }
 
-    // (15) Equipe: apenas os nomes da equipe
+    // Equipe
     private void doEquipe() {
         messages.setText("Felipe Boos\nMatheus Hillesheim\nSofia Sofiatti");
     }
 
-    // === Métodos usados pelo ToolbarPanel e por atalhos ===
+    // === Utilidades/gets (se necessário em outros pontos) ===
     public String getEditorText() {
         return editor.getTextArea().getText();
     }
@@ -179,7 +210,6 @@ public class AppFrame extends JFrame {
         messages.setText(sb.toString());
     }
 
-    // getters (se precisar em outro ponto)
     public ToolbarPanel getToolbar() { return toolbar; }
     public EditorWithLineNumbers getEditor() { return editor; }
     public MessagesPanel getMessages() { return messages; }
