@@ -1,6 +1,6 @@
 package br.com.trabalho.compilerui.ui;
 
-import br.com.trabalho.compilerui.compiler.LexicalRunner;
+import br.com.trabalho.compilerui.compiler.ParserRunner;
 import br.com.trabalho.compilerui.io.TextFileIO;
 
 import javax.swing.*;
@@ -30,7 +30,7 @@ public class AppFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Top: Toolbar
-        toolbar = new ToolbarPanel(this); // passa a referência do AppFrame
+        toolbar = new ToolbarPanel(this);
         add(toolbar, BorderLayout.NORTH);
 
         // Center: Split editor/messages
@@ -71,7 +71,7 @@ public class AppFrame extends JFrame {
         bindKeyStroke("control C", "copiar", () -> editor.getTextArea().copy());
         bindKeyStroke("control V", "colar", () -> editor.getTextArea().paste());
         bindKeyStroke("control X", "recortar", () -> editor.getTextArea().cut());
-        bindKeyStroke("F7", "compilar", this::doCompilar); // atalho compilar
+        bindKeyStroke("F7", "compilar", this::doCompilar);
         bindKeyStroke("F1", "equipe", this::doEquipe);
     }
 
@@ -85,7 +85,6 @@ public class AppFrame extends JFrame {
 
     // --- Ações ---
 
-    // Novo: limpa editor, mensagens e status; zera arquivo atual
     private void doNovo() {
         editor.getTextArea().setText("");
         messages.clear();
@@ -93,7 +92,6 @@ public class AppFrame extends JFrame {
         currentFile = null;
     }
 
-    // Abrir: apenas .txt; se cancelar, não altera nada
     private void doAbrir() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Abrir arquivo de texto");
@@ -117,7 +115,6 @@ public class AppFrame extends JFrame {
         }
     }
 
-    // Salvar: se novo, pede caminho .txt; se existente, sobrescreve
     private void doSalvar() {
         try {
             if (currentFile == null) {
@@ -154,7 +151,7 @@ public class AppFrame extends JFrame {
         }
     }
 
-    // Compilar: executa o analisador léxico e exibe a saída
+    // Compilar: executa o analisador SINTÁTICO e exibe a saída
     private void doCompilar() {
         messages.clear();
 
@@ -165,43 +162,29 @@ public class AppFrame extends JFrame {
         }
 
         try {
-            List<String> result = LexicalRunner.run(source);
+            List<String> result = ParserRunner.run(source);
 
-            // Fonte monoespaçada para alinhar colunas
+            // fonte monoespaçada para legibilidade
             messages.getTextArea().setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-            // Mostra resultado
+            // imprime exatamente o que o runner devolver (uma linha de erro ou sucesso)
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("%-10s %-20s %-20s\n", "linha", "classe", "lexema"));
-            sb.append("------------------------------------------------------------\n");
-
-            for (String line : result) {
-                // supondo que o formato de cada linha seja "linha classe lexema"
-                String[] parts = line.split("\\s+", 3); // divide em até 3 partes
-                if (parts.length == 3) {
-                    sb.append(String.format("%-10s %-20s %-20s\n", parts[0], parts[1], parts[2]));
-                } else {
-                    sb.append(line).append('\n'); // fallback
-                }
-            }
-
+            for (String line : result) sb.append(line).append('\n');
             messages.setText(sb.toString());
             messages.getTextArea().setCaretPosition(0);
+
         } catch (Exception ex) {
             messages.setText("Erro durante a compilação: " + ex.getMessage());
             ex.printStackTrace();
         }
     }
 
-    // Equipe
     private void doEquipe() {
         messages.setText("Felipe Boos\nMatheus Hillesheim\nSofia Sofiatti");
     }
 
-    // === Utilidades/gets (se necessário em outros pontos) ===
-    public String getEditorText() {
-        return editor.getTextArea().getText();
-    }
+    // Utilidades
+    public String getEditorText() { return editor.getTextArea().getText(); }
 
     public void showMessages(List<String> msgs) {
         messages.clear();

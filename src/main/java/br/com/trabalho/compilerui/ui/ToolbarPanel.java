@@ -1,11 +1,8 @@
 package br.com.trabalho.compilerui.ui;
 
-import br.com.trabalho.compilerui.compiler.LexicalRunner;
-
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
-import java.util.List;
 
 public class ToolbarPanel extends JPanel {
 
@@ -15,7 +12,7 @@ public class ToolbarPanel extends JPanel {
 
     private final JToolBar toolBar;
 
-    // Botões expostos (se você quiser ligar mais ações depois)
+    // Botões expostos (para o AppFrame ligar as ações)
     private final JButton btnNovo;
     private final JButton btnAbrir;
     private final JButton btnSalvar;
@@ -25,7 +22,8 @@ public class ToolbarPanel extends JPanel {
     private final JButton btnCompilar;
     private final JButton btnEquipe;
 
-    private final AppFrame app; // referência para acessar editor e painel de mensagens
+    @SuppressWarnings("unused")
+    private final AppFrame app;
 
     public ToolbarPanel(AppFrame app) {
         this.app = app;
@@ -58,7 +56,7 @@ public class ToolbarPanel extends JPanel {
 
         // ==== Compilar ====
         btnCompilar = createButton("compilar [F7]", "compilar.png");
-        btnCompilar.addActionListener(e -> onCompile());
+        // OBS: não adicionamos ActionListener aqui; o AppFrame liga esse botão ao doCompilar()
         toolBar.add(btnCompilar);
         toolBar.addSeparator();
 
@@ -67,13 +65,6 @@ public class ToolbarPanel extends JPanel {
         toolBar.add(btnEquipe);
 
         add(toolBar, BorderLayout.CENTER);
-    }
-
-    /** Executa o runner léxico e envia as mensagens para o painel de saída. */
-    private void onCompile() {
-        String codigo = app.getEditorText();                 // você expõe esse getter no AppFrame
-        List<String> linhas = LexicalRunner.run(codigo);     // roda o léxico (Parte 2)
-        app.showMessages(linhas);                            // e mostra no MessagesPanel
     }
 
     private JButton createButton(String text, String iconFile) {
@@ -102,7 +93,7 @@ public class ToolbarPanel extends JPanel {
         return new ImageIcon(img);
     }
 
-    // Getters (se ainda quiser conectar outras ações fora da classe)
+    // Getters para o AppFrame conectar as ações
     public JButton getBtnNovo()      { return btnNovo; }
     public JButton getBtnAbrir()     { return btnAbrir; }
     public JButton getBtnSalvar()    { return btnSalvar; }
