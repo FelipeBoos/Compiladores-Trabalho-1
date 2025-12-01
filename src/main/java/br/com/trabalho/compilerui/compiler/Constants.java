@@ -1,7 +1,5 @@
 package br.com.trabalho.compilerui.compiler;
 
-import br.com.trabalho.compilerui.compiler.ParserConstants;
-
 public interface Constants extends ScannerConstants, ParserConstants
 {
     int EPSILON  = 0;
@@ -38,15 +36,15 @@ public interface Constants extends ScannerConstants, ParserConstants
     int t_TOKEN_30 = 30; //"-"
     int t_TOKEN_31 = 31; //"*"
     int t_TOKEN_32 = 32; //"/"
-    int t_TOKEN_33 = 33; //"("
-    int t_TOKEN_34 = 34; //")"
-    int t_TOKEN_35 = 35; //"="
-    int t_TOKEN_36 = 36; //","
-    int t_TOKEN_37 = 37; //"<-"
-    int t_TOKEN_38 = 38; //"=="
-    int t_TOKEN_39 = 39; //"<"
-    int t_TOKEN_40 = 40; //">"
+    int t_TOKEN_33 = 33; //"=="
+    int t_TOKEN_34 = 34; //"~="
+    int t_TOKEN_35 = 35; //"<"
+    int t_TOKEN_36 = 36; //">"
+    int t_TOKEN_37 = 37; //"="
+    int t_TOKEN_38 = 38; //"<-"
+    int t_TOKEN_39 = 39; //"("
+    int t_TOKEN_40 = 40; //")"
     int t_TOKEN_41 = 41; //";"
-    int t_TOKEN_42 = 42; //"~="
+    int t_TOKEN_42 = 42; //","
 
 }
