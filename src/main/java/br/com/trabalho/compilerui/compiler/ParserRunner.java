@@ -15,11 +15,23 @@ public final class ParserRunner {
         lexico.setInput(new StringReader(source));
 
         Sintatico sintatico = new Sintatico();
-        Semantico semantico = new Semantico();
+        EnhancedSemantico semantico = new EnhancedSemantico();
 
         try {
             sintatico.parse(lexico, semantico);
             out.add("programa compilado com sucesso");
+
+            // Opcional: exibir também o código IL gerado
+            String il = semantico.getCodigoGerado();
+            if (il != null && !il.isBlank()) {
+                out.add("----------- CÓDIGO IL -----------");
+                for (String linha : il.split("\\R")) {
+                    if (!linha.isBlank()) {
+                        out.add(linha);
+                    }
+                }
+            }
+
             return out;
 
         } catch (LexicalError e) {

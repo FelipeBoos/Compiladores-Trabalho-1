@@ -116,7 +116,13 @@ public class SemanticContext {
             case "bool"   -> "bool";
             default       -> tipoFonte; // fallback
         };
+
+        // registra na tabela de símbolos
         tabelaSimbolos.put(id, tipoIL);
+
+        // gera declaração da variável em IL, conforme esquema:
+        // .locals (tipo id)
+        emitirLinha(".locals (" + tipoIL + " " + id + ")");
     }
 
     public String tipoDe(String id) {
@@ -158,5 +164,25 @@ public class SemanticContext {
         emitirLinha("ret");
         emitirLinha(" }");
         emitirLinha("}");
+    }
+
+    // ===== Helpers para constantes =====
+
+    public void emitirConstanteInteira(String lexeme) {
+        // Gera um inteiro 64 bits no stack
+        emitirLinha("ldc.i8 " + lexeme);
+        pushTipo("int64");
+    }
+
+    public void emitirConstanteFloat(String lexeme) {
+        // IL usa ponto como separador decimal; assumimos que já vem assim do léxico
+        emitirLinha("ldc.r8 " + lexeme);
+        pushTipo("float64");
+    }
+
+    public void emitirConstanteString(String lexeme) {
+        // lexeme já vem com aspas: "texto"
+        emitirLinha("ldstr " + lexeme);
+        pushTipo("string");
     }
 }
