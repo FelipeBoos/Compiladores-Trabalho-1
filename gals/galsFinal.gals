@@ -132,8 +132,12 @@ pr_until       = identificador: "until"
 
 <dec_variável> ::= <tipo> <lista_id> #119 ;
 
-<comando> ::= identificador <comando1> | <ent_dados> | <com_saida> | <com_sel> | <com_rep> ;
-<comando1> ::= "=" <expressao> | "<-" <expressao> | pr_add "(" <elemento> "," <posição> ")" | pr_delete "(" <posição> ")";
+<comando> ::= identificador #121 <comando1> | <ent_dados> | <com_saida> | <com_sel> | <com_rep> ;
+
+<comando1> ::= "=" <expressao> #122 
+             | "<-" <expressao> #122 
+             | pr_add "(" <elemento> "," <posição> ")" 
+             | pr_delete "(" <posição> ")";
 
 <tipo> ::= pr_bool #120 | pr_int #120 | pr_float #120 | pr_string #120 | <lista> ;
 <lista> ::= pr_list "(" <simples> "," cint ")" ;
@@ -148,13 +152,14 @@ pr_until       = identificador: "until"
 
 <lista_expressões> ::= <expressao> #102 <lista_expressões1>;
 <lista_expressões1> ::= î | "," <lista_expressões>;
-<id_com_str> ::= <string_virg> identificador ;
-<string_virg> ::= cstring "," | î ;
+
+<id_com_str> ::= <string_virg> identificador #123 ;
+<string_virg> ::= cstring #124 "," | î ;
 
 <lista_entrada> ::= <id_com_str> <lista_entrada1> ;
 <lista_entrada1> ::= î | "," <lista_entrada> ;
 
-<com_saida> ::= pr_print "(" <lista_expressões> ")" ;
+<com_saida> ::= pr_print "(" <lista_expressões> ")" #118 ;
 <com_sel> ::= pr_if <expressao> <lista_comandos> <com_else> pr_end ;
 
 <lista_comandos> ::= <comando>  ";" <lista_comandos1> ;
@@ -168,21 +173,31 @@ pr_until       = identificador: "until"
 
 
 <expressao> ::= <valor> <expressao_> ;
-<expressao_> ::= î | pr_and <valor> <expressao_> | pr_or <valor> <expressao_> ;
-<valor> ::= <relacional> | pr_true | pr_false | pr_not <valor> ;
+<expressao_> ::= î
+               | pr_and <valor> #113 <expressao_>
+               | pr_or  <valor> #114 <expressao_> ;
+<valor> ::= <relacional>
+          | pr_true  #115
+          | pr_false #116
+          | pr_not <valor> #117 ;
 <relacional> ::= <aritmetica> <relacional_> ;
-<relacional_> ::= î | <operador_relacional> <aritmetica> ;
+<relacional_> ::= î
+                | <operador_relacional> #111 <aritmetica> #112 ;
 <operador_relacional>::= "==" | "~=" | "<" | ">" ;
 <aritmetica> ::= <termo> <aritmetica_> ;
-<aritmetica_> ::= î | "+" <termo> <aritmetica_> | "-" <termo> <aritmetica_> ;
+<aritmetica_> ::= î 
+                | "+" <termo> #106 <aritmetica_> 
+                | "-" <termo> #107 <aritmetica_> ;
 <termo> ::= <fator> <termo_> ;
-<termo_> ::= î | "*" <fator> <termo_> | "/" <fator> <termo_> ;
+<termo_> ::= î 
+           | "*" <fator> #108 <termo_> 
+           | "/" <fator> #109 <termo_> ;
 <fator> ::= identificador #130 <fator_> |
  cint #103 |
  cfloat #104 |
  cstring #105 |
  "(" <expressao> ")" |
  "+" <fator> |
- "-" <fator> ;
+ "-" <fator> #110 ;
 <fator_> ::= î | pr_count | pr_size | pr_elementOf "(" <expressao> ")" ; 
 

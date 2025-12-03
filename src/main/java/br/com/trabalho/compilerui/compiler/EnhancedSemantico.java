@@ -30,6 +30,14 @@ public class EnhancedSemantico extends Semantico{
                 ctx.emitirRodapePrograma();
                 break;
 
+            // ----------------------------------------------------
+            // (9) Saída: print
+            // ----------------------------------------------------
+            case 102:
+                // cada expressão em <lista_expressões> chama #102
+                ctx.escreverExpressaoTopo();
+                break;
+
             case 103: // cint
                 ctx.emitirConstanteInteira(token.getLexeme());
                 break;
@@ -40,6 +48,80 @@ public class EnhancedSemantico extends Semantico{
 
             case 105: // cstring
                 ctx.emitirConstanteString(token.getLexeme());
+                break;
+
+            case 106: // "+" binário
+                ctx.operarAritmeticaBinaria("add");
+                break;
+
+            case 107: // "-" binário
+                ctx.operarAritmeticaBinaria("sub");
+                break;
+
+            case 108: // "*" binário
+                ctx.operarAritmeticaBinaria("mul");
+                break;
+
+            case 109: // "/" binário
+                ctx.operarAritmeticaBinaria("div");
+                break;
+
+            // ----------------------------------------------------
+            // (6) Operador aritmético unário "-"
+            // ----------------------------------------------------
+            case 110:
+                ctx.operarMenosUnario();
+                break;
+
+            case 111:
+                // guardar operador relacional reconhecido
+                ctx.setOperadorRelacional(token.getLexeme());
+                break;
+
+            case 112:
+                // aplicar operador relacional, gerar código e empilhar bool
+                ctx.aplicarOperadorRelacional();
+                break;
+
+            // ----------------------------------------------------
+            // (8) Constantes booleanas e operadores lógicos
+            // ----------------------------------------------------
+            case 115: // true
+                ctx.emitirConstanteTrue();
+                break;
+
+            case 116: // false
+                ctx.emitirConstanteFalse();
+                break;
+
+            case 117: // not
+                ctx.operarNot();
+                break;
+
+            case 113: // and
+                ctx.operarLogicoBinario("and");
+                break;
+
+            case 114: // or
+                ctx.operarLogicoBinario("or");
+                break;
+
+            case 118:
+                // ao final do print(...)
+                ctx.escreverQuebraDeLinha();
+                break;
+
+            // ----------------------------------------------------
+            // (10) Entrada: read
+            // ----------------------------------------------------
+            case 124:
+                // cstring opcional antes do id em read(...)
+                ctx.escreverStringConstante(token.getLexeme());
+                break;
+
+            case 123:
+                // id em read(...)
+                ctx.lerEntradaEmId(token.getLexeme(), token.getPosition());
                 break;
 
             // ----------------------------------------------------
@@ -56,6 +138,38 @@ public class EnhancedSemantico extends Semantico{
                 ctx.adicionarIdentificador(token.getLexeme());
                 break;
 
+            case 122: {
+                // desempilha o tipo da expressão
+                String tipoExpr = ctx.popTipo();
+
+                // se expressão for do tipo int64, converter para int64 (conv.i8) antes de stloc
+                if ("int64".equals(tipoExpr)) {
+                    ctx.emitirLinha("conv.i8");
+                }
+
+                // recuperar id armazenado na lista_identificadores (deve ter exatamente 1)
+                String idAtrib = null;
+                java.util.List<String> ids = ctx.consumirListaIdentificadores();
+                if (!ids.isEmpty()) {
+                    idAtrib = ids.get(0);
+                }
+
+                if (idAtrib == null) {
+                    throw new SemanticError("atribuição sem identificador", token.getPosition());
+                }
+
+                // opcional: garantir que o id foi declarado (segurança extra)
+                String tipoVar = ctx.tipoDe(idAtrib);
+                if (tipoVar == null) {
+                    throw new SemanticError("identificador nao declarado: " + idAtrib,
+                            token.getPosition());
+                }
+
+                // gerar stloc id
+                ctx.emitirLinha("stloc " + idAtrib);
+                break;
+            }
+
             case 119:
                 // final da declaração: registra todos ids com o tipo atual
                 for (String id : ctx.consumirListaIdentificadores()) {
@@ -67,21 +181,27 @@ public class EnhancedSemantico extends Semantico{
             // ----------------------------------------------------
             // (3) Uso de identificador em expressão
             // ----------------------------------------------------
-            case 130:
+            case 130: {
                 String id = token.getLexeme();
                 String tipo = ctx.tipoDe(id);
 
                 if (tipo == null) {
-                    // identificador não foi declarado
                     throw new SemanticError("identificador nao declarado: " + id,
                             token.getPosition());
                 }
 
-                // empilha o tipo do identificador para uso nas expressões
+                // empilha tipo do id na pilha_tipos
                 ctx.pushTipo(tipo);
 
-                // a geração de código IL (ldloc, conv, etc.) vamos adicionar depois
+                // gera código para carregar o valor armazenado em id
+                ctx.emitirLinha("ldloc " + id);
+
+                // se id for int64, converter para float64 em IL (conv.r8)
+                if ("int64".equals(tipo)) {
+                    ctx.emitirLinha("conv.r8");
+                }
                 break;
+            }
         }
     }
 }
