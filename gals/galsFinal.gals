@@ -160,14 +160,14 @@ pr_until       = identificador: "until"
 <lista_entrada1> ::= î | "," <lista_entrada> ;
 
 <com_saida> ::= pr_print "(" <lista_expressões> ")" #118 ;
-<com_sel> ::= pr_if <expressao> <lista_comandos> <com_else> pr_end ;
+<com_sel> ::= pr_if <expressao> #125 <lista_comandos> <com_else> #127 pr_end ;
 
 <lista_comandos> ::= <comando>  ";" <lista_comandos1> ;
 <lista_comandos1> ::= î | <lista_comandos> ;
 
 
-<com_else> ::= pr_else <lista_comandos> | î ;
-<com_rep> ::= pr_do <lista_comandos> pr_until <expressao> ;
+<com_else> ::= pr_else #126 <lista_comandos> | î ;
+<com_rep> ::= pr_do #128 <lista_comandos> pr_until <expressao> #129 ;
 
 <simples> ::= pr_bool | pr_int | pr_float | pr_string ;
 

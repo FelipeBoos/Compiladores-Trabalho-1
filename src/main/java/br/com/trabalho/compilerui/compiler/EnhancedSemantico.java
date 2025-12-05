@@ -111,17 +111,14 @@ public class EnhancedSemantico extends Semantico{
                 ctx.escreverQuebraDeLinha();
                 break;
 
-            // ----------------------------------------------------
-            // (10) Entrada: read
-            // ----------------------------------------------------
-            case 124:
-                // cstring opcional antes do id em read(...)
-                ctx.escreverStringConstante(token.getLexeme());
-                break;
 
-            case 123:
-                // id em read(...)
-                ctx.lerEntradaEmId(token.getLexeme(), token.getPosition());
+
+            case 119:
+                // final da declaração: registra todos ids com o tipo atual
+                for (String id : ctx.consumirListaIdentificadores()) {
+                    ctx.declararSimbolo(id, ctx.getTipoAtual());
+                    // geração de .locals virá depois, quando formos montar o IL
+                }
                 break;
 
             // ----------------------------------------------------
@@ -138,45 +135,56 @@ public class EnhancedSemantico extends Semantico{
                 ctx.adicionarIdentificador(token.getLexeme());
                 break;
 
-            case 122: {
-                // desempilha o tipo da expressão
-                String tipoExpr = ctx.popTipo();
-
-                // se expressão for do tipo int64, converter para int64 (conv.i8) antes de stloc
-                if ("int64".equals(tipoExpr)) {
-                    ctx.emitirLinha("conv.i8");
-                }
-
+            case 122: { // atribuição: id = expressao
                 // recuperar id armazenado na lista_identificadores (deve ter exatamente 1)
-                String idAtrib = null;
                 java.util.List<String> ids = ctx.consumirListaIdentificadores();
-                if (!ids.isEmpty()) {
-                    idAtrib = ids.get(0);
-                }
+                String idAtrib = (ids.isEmpty() ? null : ids.get(0));
 
                 if (idAtrib == null) {
                     throw new SemanticError("atribuição sem identificador", token.getPosition());
                 }
 
-                // opcional: garantir que o id foi declarado (segurança extra)
-                String tipoVar = ctx.tipoDe(idAtrib);
-                if (tipoVar == null) {
-                    throw new SemanticError("identificador nao declarado: " + idAtrib,
-                            token.getPosition());
-                }
-
-                // gerar stloc id
-                ctx.emitirLinha("stloc " + idAtrib);
+                // delega para o helper que:
+                //  - verifica se o id foi declarado
+                //  - decide se precisa de conv.i8 (apenas se a variável for int64)
+                //  - gera o stloc correto
+                ctx.atribuirParaIdentificador(idAtrib, token.getPosition());
                 break;
             }
 
-            case 119:
-                // final da declaração: registra todos ids com o tipo atual
-                for (String id : ctx.consumirListaIdentificadores()) {
-                    ctx.declararSimbolo(id, ctx.getTipoAtual());
-                    // geração de .locals virá depois, quando formos montar o IL
-                }
+            case 123:
+                // id em read(...)
+                ctx.lerEntradaEmId(token.getLexeme(), token.getPosition());
                 break;
+
+            // ----------------------------------------------------
+            // (10) Entrada: read
+            // ----------------------------------------------------
+            case 124:
+                // cstring opcional antes do id em read(...)
+                ctx.escreverStringConstante(token.getLexeme());
+                break;
+
+            case 125:
+                ctx.iniciarIf();
+                break;
+
+            case 126:
+                ctx.iniciarElse();
+                break;
+
+            case 127:
+                ctx.finalizarIfElse();
+                break;
+
+            case 128:
+                ctx.iniciarDo();
+                break;
+
+            case 129:
+                ctx.finalizarDoUntil();
+                break;
+
 
             // ----------------------------------------------------
             // (3) Uso de identificador em expressão

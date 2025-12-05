@@ -166,7 +166,7 @@ public class SemanticContext {
         emitirLinha("}");
     }
 
-    // ===== Helpers para constantes =====
+    // ===== Constantes =====
 
     public void emitirConstanteInteira(String lexeme) {
         // Esquema: empilhar tipo int64, gerar ldc.i8 e converter para float64
@@ -183,6 +183,16 @@ public class SemanticContext {
     public void emitirConstanteString(String lexeme) {
         emitirLinha("ldstr " + lexeme);
         pushTipo("string");
+    }
+
+    public void emitirConstanteTrue() {
+        emitirLinha("ldc.i4.1");
+        pushTipo("bool");
+    }
+
+    public void emitirConstanteFalse() {
+        emitirLinha("ldc.i4.0");
+        pushTipo("bool");
     }
 
     // ===== Operações aritméticas =====
@@ -208,7 +218,6 @@ public class SemanticContext {
     }
 
     public void operarMenosUnario() {
-        // Esquema diz: gerar código objeto para efetuar a operação correspondente
         // Em IL, usamos 'neg' para trocar o sinal do topo da pilha
         emitirLinha("neg");
         // Tipo na pilha não muda, então não mexemos em pilha_tipos aqui
@@ -244,22 +253,10 @@ public class SemanticContext {
         }
     }
 
-    // ===== Constantes booleanas =====
-
-    public void emitirConstanteTrue() {
-        emitirLinha("ldc.i4.1");
-        pushTipo("bool");
-    }
-
-    public void emitirConstanteFalse() {
-        emitirLinha("ldc.i4.0");
-        pushTipo("bool");
-    }
-
     // ===== Operadores lógicos =====
 
     public void operarLogicoBinario(String opIL) {
-        // desempilha dois tipos e empilha bool, conforme tabela de tipos
+        // desempilha dois tipos e empilha bool
         String t2 = popTipo();
         String t1 = popTipo();
         pushTipo("bool");
@@ -268,13 +265,12 @@ public class SemanticContext {
 
     public void operarNot() {
         // not: resultado é bool; usamos padrão "== 0"
-        // pilha: ... valor
         emitirLinha("ldc.i4.0");
         emitirLinha("ceq");
         // tipo continua bool, então não mexemos na pilha_tipos
     }
 
-    // ===== Saída: escrever valor de expressão =====
+    // ===== Saída: print =====
 
     public void escreverExpressaoTopo() {
         String tipo = popTipo(); // tipo da linguagem (bool, int64, float64, string)
@@ -299,7 +295,7 @@ public class SemanticContext {
         emitirLinha("call void [mscorlib]System.Console::WriteLine()");
     }
 
-    // ===== Entrada: prompt opcional =====
+    // ===== Entrada: read =====
 
     public void escreverStringConstante(String lexeme) {
         // lexeme já vem com aspas
@@ -335,5 +331,94 @@ public class SemanticContext {
             // tipo estranho → trata como string
             emitirLinha("stloc " + id);
         }
+    }
+
+    // ===== Controle de fluxo: if / else =====
+
+    /** Ação #125 - após avaliar a expressão do if. */
+    public void iniciarIf() {
+        // consumir tipo da expressão condicional na pilha de tipos
+        if (!pilhaTipos.isEmpty()) {
+            pilhaTipos.pop();
+        }
+
+        String rotuloFimIf = novoRotulo();
+        pilhaRotulos.push(rotuloFimIf);
+
+        // se condição for falsa, salta para o fim (ou para o else, se existir)
+        emitirLinha("brfalse " + rotuloFimIf);
+    }
+
+    /** Ação #126 - ao encontrar 'else'. */
+    public void iniciarElse() {
+        // rótulo que marcava o fim do bloco 'then'
+        String rotuloFimIf = pilhaRotulos.pop();
+
+        // novo rótulo para o fim total do if/else
+        String rotuloFimTotal = novoRotulo();
+
+        // salta para depois do else
+        emitirLinha("br " + rotuloFimTotal);
+
+        // marca início do bloco else
+        emitirLinha(rotuloFimIf + ":");
+
+        // empilha o novo rótulo para ser fechado em #127
+        pilhaRotulos.push(rotuloFimTotal);
+    }
+
+    /** Ação #127 - ao encontrar 'end' do if (com ou sem else). */
+    public void finalizarIfElse() {
+        String rotuloFim = pilhaRotulos.pop();
+        emitirLinha(rotuloFim + ":");
+    }
+
+    // ===== Controle de fluxo: do / until =====
+
+    /** Ação #128 - início do 'do'. */
+    public void iniciarDo() {
+        String rotuloInicio = novoRotulo();
+        pilhaRotulos.push(rotuloInicio);
+        emitirLinha(rotuloInicio + ":");
+    }
+
+    /** Ação #129 - após avaliar expressão do 'until'. */
+    public void finalizarDoUntil() {
+        // consumir tipo da expressão condicional na pilha de tipos
+        if (!pilhaTipos.isEmpty()) {
+            pilhaTipos.pop();
+        }
+
+        String rotuloInicio = pilhaRotulos.pop();
+        // until E -> repete enquanto E for falso -> brfalse
+        emitirLinha("brfalse " + rotuloInicio);
+    }
+
+    public void atribuirParaIdentificador(String id, int pos) throws SemanticError {
+        String tipoVar = tipoDe(id);
+        if (tipoVar == null) {
+            throw new SemanticError("identificador nao declarado: " + id, pos);
+        }
+
+        // tipo da expressão calculada
+        String tipoExp = popTipo(); // não vamos validar compatibilidade fina aqui
+
+        // A regra geral:
+        // - nossas expressões numéricas deixam um float64 na pilha IL
+        // - se a variável é int64, convertemos para i8
+        // - se a variável é float64, NÃO convertemos (mantém r8)
+        // - para bool/string, assumimos que a expressão já deixou o tipo correto
+
+        if ("int64".equals(tipoVar)) {
+            // precisamos armazenar como int64
+            emitirLinha("conv.i8");
+        } else if ("float64".equals(tipoVar)) {
+            // já está em r8, não faz conversão para inteiro
+            // NADA aqui
+        } else {
+            // bool, string etc: não mexemos
+        }
+
+        emitirLinha("stloc " + id);
     }
 }

@@ -161,17 +161,57 @@ public class AppFrame extends JFrame {
             return;
         }
 
+        // Exigir arquivo salvo para gerar o .il
+        if (currentFile == null) {
+            messages.setText("Salve o arquivo antes de compilar para gerar o código objeto (.il).");
+            return;
+        }
+
         try {
             List<String> result = ParserRunner.run(source);
 
             // fonte monoespaçada para legibilidade
             messages.getTextArea().setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-            // imprime exatamente o que o runner devolver (uma linha de erro ou sucesso)
-            StringBuilder sb = new StringBuilder();
-            for (String line : result) sb.append(line).append('\n');
-            messages.setText(sb.toString());
+            // === ÁREA DE MENSAGENS ===
+            // Mostrar APENAS a primeira linha (erro ou sucesso).
+            if (result.isEmpty()) {
+                messages.setText("Erro: compilação não retornou mensagem.");
+            } else {
+                messages.setText(result.get(0));
+            }
             messages.getTextArea().setCaretPosition(0);
+
+            // === GERAÇÃO DO ARQUIVO IL ===
+            // Somente se compilou com sucesso.
+            if (!result.isEmpty()
+                    && result.get(0).trim().equalsIgnoreCase("programa compilado com sucesso")) {
+
+                // Monta o conteúdo IL a partir das demais linhas (result[1..])
+                StringBuilder il = new StringBuilder();
+                for (int i = 1; i < result.size(); i++) {
+                    String line = result.get(i);
+
+                    // Ignora o marcador "----------- CÓDIGO IL -----------"
+                    if (line.startsWith("-----------")) continue;
+
+                    il.append(line).append('\n');
+                }
+
+                // Caminho do arquivo .il na mesma pasta do .txt
+                Path ilPath = currentFile.resolveSibling(
+                        replaceExtension(currentFile.getFileName().toString(), ".il")
+                );
+
+                // Salvar arquivo .il
+                TextFileIO.write(ilPath, il.toString());
+
+                // Atualizar status bar (opcional)
+                statusBar.updatePath(
+                        currentFile.toString() +
+                                "  (código IL gerado: " + ilPath.getFileName() + ")"
+                );
+            }
 
         } catch (Exception ex) {
             messages.setText("Erro durante a compilação: " + ex.getMessage());
@@ -191,6 +231,14 @@ public class AppFrame extends JFrame {
         StringBuilder sb = new StringBuilder();
         for (String l : msgs) sb.append(l).append('\n');
         messages.setText(sb.toString());
+    }
+
+    private String replaceExtension(String fileName, String newExt) {
+        int idx = fileName.lastIndexOf('.');
+        if (idx > 0) {
+            return fileName.substring(0, idx) + newExt;
+        }
+        return fileName + newExt;
     }
 
     public ToolbarPanel getToolbar() { return toolbar; }
